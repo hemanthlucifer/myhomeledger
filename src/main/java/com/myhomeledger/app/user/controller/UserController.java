@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final CreateUserService createUserService;
-    private final UpdateUserService updateUserServie;
+    private final UpdateUserService updateUserService;
 
     @PostMapping("/signup")
     public ResponseEntity<Object> userSignup(@RequestBody @Valid CreateUserDTO createUserDTO){
