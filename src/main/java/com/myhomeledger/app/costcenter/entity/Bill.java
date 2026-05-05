@@ -14,7 +14,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "bill")
+@Table(name = "bill",indexes = {
+        @Index(name = "projectId_costId",columnList = "project_id,cost_id"),
+        @Index(name = "filter_index",columnList = "project_id,cost_id,ammount,bill_date")
+})
 public class Bill {
 
     @Id

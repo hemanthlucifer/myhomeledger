@@ -12,7 +12,9 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "project")
+@Table(name = "project",indexes = {
+        @Index(name = "project_user_index",columnList = "projectId,userId")
+})
 public class Project {
 
     @Id
