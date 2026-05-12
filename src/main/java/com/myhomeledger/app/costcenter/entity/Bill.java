@@ -27,6 +27,10 @@ public class Bill {
     @Column(name = "cost_id", nullable = false)
     private int costId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cost_id", referencedColumnName = "cost_id", insertable = false, updatable = false)
+    private Cost cost;
+
     @Column(name = "project_id", nullable = false)
     private UUID projectId;
 

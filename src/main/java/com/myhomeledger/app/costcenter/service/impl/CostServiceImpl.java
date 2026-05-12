@@ -11,8 +11,11 @@ import com.myhomeledger.app.costcenter.repository.BillRepository;
 import com.myhomeledger.app.costcenter.repository.CostRepository;
 import com.myhomeledger.app.costcenter.service.CostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,15 @@ public class CostServiceImpl implements CostService {
         Cost cost = costRepository.findById(costId)
                 .orElseThrow(() -> new CostCenterNotFoundException("Cost not found: " + costId));
         return costCenterMapper.toCostResponse(cost);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<CostResponse> getAll() {
+        return costRepository.findAll(Sort.by(Sort.Direction.ASC, "costName"))
+                .stream()
+                .map(costCenterMapper::toCostResponse)
+                .toList();
     }
 
     @Transactional

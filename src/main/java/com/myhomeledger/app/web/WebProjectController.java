@@ -1,0 +1,118 @@
+package com.myhomeledger.app.web;
+
+import com.myhomeledger.app.costcenter.dto.BillCreateRequest;
+import com.myhomeledger.app.costcenter.dto.BillFilterCriteria;
+import com.myhomeledger.app.costcenter.dto.ProjectResponse;
+import com.myhomeledger.app.costcenter.service.BillService;
+import com.myhomeledger.app.costcenter.service.CostService;
+import com.myhomeledger.app.costcenter.service.ProjectService;
+import com.myhomeledger.app.user.entity.UserEntity;
+import com.myhomeledger.app.user.repository.UserRepository;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Controller
+@RequiredArgsConstructor
+public class WebProjectController {
+
+    private final UserRepository userRepository;
+    private final ProjectService projectService;
+    private final BillService billService;
+    private final CostService costService;
+
+    @GetMapping("/web/projects/{projectId}")
+    public String projectPage(
+            @PathVariable UUID projectId,
+            @RequestParam(required = false) String costName,
+            @RequestParam(required = false) Double minAmount,
+            @RequestParam(required = false) Double maxAmount,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billDateTo,
+            Authentication authentication,
+            Model model) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        ProjectResponse project = requireOwnedProject(projectId, userId);
+        if (project == null) {
+            return "redirect:/home";
+        }
+        BillFilterCriteria criteria = new BillFilterCriteria(projectId, costName, minAmount, maxAmount, billDateFrom, billDateTo);
+        populateProjectModel(userId, project, criteria, model, defaultBillCreateForm());
+        return "project";
+    }
+
+    @PostMapping("/web/projects/{projectId}/bills")
+    public String createBill(
+            @PathVariable UUID projectId,
+            @Valid @ModelAttribute("billCreateForm") WebBillCreateForm billCreateForm,
+            BindingResult bindingResult,
+            Authentication authentication,
+            Model model) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        ProjectResponse project = requireOwnedProject(projectId, userId);
+        if (project == null) {
+            return "redirect:/home";
+        }
+        if (bindingResult.hasErrors()) {
+            BillFilterCriteria criteria = new BillFilterCriteria(projectId, null, null, null, null, null);
+            populateProjectModel(userId, project, criteria, model, billCreateForm);
+            model.addAttribute("billCreateDialogOpen", true);
+            return "project";
+        }
+        BillCreateRequest request = new BillCreateRequest();
+        request.setProjectId(projectId);
+        request.setCostId(billCreateForm.getCostId());
+        request.setAmount(billCreateForm.getAmount());
+        request.setBillDate(billCreateForm.getBillDate());
+        request.setItems(billCreateForm.getItems().trim());
+        billService.create(request);
+        return "redirect:/web/projects/" + projectId;
+    }
+
+    private ProjectResponse requireOwnedProject(UUID projectId, UUID userId) {
+        ProjectResponse project = projectService.getById(projectId);
+        if (!project.getUserId().equals(userId)) {
+            return null;
+        }
+        return project;
+    }
+
+    private static WebBillCreateForm defaultBillCreateForm() {
+        WebBillCreateForm form = new WebBillCreateForm();
+        form.setBillDate(LocalDate.now());
+        return form;
+    }
+
+    private void populateProjectModel(
+            UUID userId,
+            ProjectResponse project,
+            BillFilterCriteria criteria,
+            Model model,
+            WebBillCreateForm billCreateForm) {
+        String username = userRepository.findById(userId)
+                .map(UserEntity::getUserName)
+                .orElse("there");
+        model.addAttribute("username", username);
+        model.addAttribute("project", project);
+        model.addAttribute("bills", billService.listFiltered(userId, criteria));
+        model.addAttribute("filterCostName", criteria.costName() != null ? criteria.costName() : "");
+        model.addAttribute("filterMinAmount", criteria.minAmount());
+        model.addAttribute("filterMaxAmount", criteria.maxAmount());
+        model.addAttribute("filterBillDateFrom", criteria.billDateFrom() != null ? criteria.billDateFrom().toString() : "");
+        model.addAttribute("filterBillDateTo", criteria.billDateTo() != null ? criteria.billDateTo().toString() : "");
+        model.addAttribute("costs", costService.getAll());
+        model.addAttribute("billCreateForm", billCreateForm);
+    }
+}

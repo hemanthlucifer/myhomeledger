@@ -40,19 +40,27 @@ public interface CostCenterMapper {
     CostResponse toCostResponse(Cost cost);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "cost", ignore = true)
     @Mapping(target = "createdAt", expression = "java(Instant.now())")
     @Mapping(target = "updatedAt", expression = "java(Instant.now())")
     @Mapping(target = "ammount", source = "amount", qualifiedByName = "bigDecimalToDouble")
     Bill toEntity(BillCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "cost", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", expression = "java(Instant.now())")
     @Mapping(target = "ammount", source = "amount", qualifiedByName = "bigDecimalToDouble")
     void updateBill(@MappingTarget Bill bill, BillUpdateRequest request);
 
     @Mapping(target = "amount", source = "ammount", qualifiedByName = "doubleToBigDecimal")
+    @Mapping(target = "costName", source = "cost", qualifiedByName = "costToName")
     BillResponse toBillResponse(Bill bill);
+
+    @Named("costToName")
+    default String costToName(Cost cost) {
+        return cost == null ? null : cost.getCostName();
+    }
 
     @Named("bigDecimalToDouble")
     default double bigDecimalToDouble(BigDecimal value) {

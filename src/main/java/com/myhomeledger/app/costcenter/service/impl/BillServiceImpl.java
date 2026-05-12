@@ -1,18 +1,25 @@
 package com.myhomeledger.app.costcenter.service.impl;
 
 import com.myhomeledger.app.costcenter.dto.BillCreateRequest;
+import com.myhomeledger.app.costcenter.dto.BillFilterCriteria;
 import com.myhomeledger.app.costcenter.dto.BillResponse;
 import com.myhomeledger.app.costcenter.dto.BillUpdateRequest;
 import com.myhomeledger.app.costcenter.entity.Bill;
+import com.myhomeledger.app.costcenter.entity.Project;
 import com.myhomeledger.app.costcenter.exceptions.CostCenterNotFoundException;
 import com.myhomeledger.app.costcenter.mapper.CostCenterMapper;
 import com.myhomeledger.app.costcenter.repository.BillRepository;
 import com.myhomeledger.app.costcenter.repository.CostRepository;
 import com.myhomeledger.app.costcenter.repository.ProjectRepository;
 import com.myhomeledger.app.costcenter.service.BillService;
+import com.myhomeledger.app.costcenter.specification.BillSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -71,6 +78,31 @@ public class BillServiceImpl implements BillService {
         return billRepository.findAllByProjectIdOrderByBillDateDesc(projectId).stream()
                 .map(costCenterMapper::toBillResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<BillResponse> listFiltered(UUID userId, BillFilterCriteria criteria) {
+        Project project = projectRepository.findById(criteria.projectId())
+                .orElseThrow(() -> new CostCenterNotFoundException("Project not found: " + criteria.projectId()));
+        if (!project.getUserId().equals(userId)) {
+            throw new CostCenterNotFoundException("Project not found: " + criteria.projectId());
+        }
+        validateFilterRanges(criteria);
+        Specification<Bill> spec = BillSpecification.matching(criteria);
+        Sort sort = Sort.by(Sort.Order.desc("billDate"), Sort.Order.desc("id"));
+        return billRepository.findAll(spec, sort).stream()
+                .map(costCenterMapper::toBillResponse)
+                .toList();
+    }
+
+    private static void validateFilterRanges(BillFilterCriteria criteria) {
+        if (criteria.minAmount() != null && criteria.maxAmount() != null && criteria.minAmount() > criteria.maxAmount()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "minAmount must be less than or equal to maxAmount");
+        }
+        if (criteria.billDateFrom() != null && criteria.billDateTo() != null && criteria.billDateFrom().isAfter(criteria.billDateTo())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "billDateFrom must be on or before billDateTo");
+        }
     }
 
     private void requireProject(UUID projectId) {

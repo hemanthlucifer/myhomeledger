@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>My Home Ledger — Sign up</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --card: #1a2332;
+            --border: #2d3a4d;
+            --text: #e8eef5;
+            --muted: #8b9cb3;
+            --accent: #3d8bfd;
+            --accent-hover: #5aa0ff;
+            --danger: #f87171;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+            background: radial-gradient(ellipse 120% 80% at 50% -20%, #1e3a5f 0%, var(--bg) 55%);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 2rem 2rem 1.75rem;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+        }
+        h1 {
+            margin: 0 0 0.35rem;
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        .subtitle { margin: 0 0 1.5rem; color: var(--muted); font-size: 0.9rem; }
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+        input[type="text"], input[type="password"], input[type="tel"] {
+            width: 100%;
+            padding: 0.65rem 0.75rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #131c28;
+            color: var(--text);
+            font-size: 1rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(61, 139, 253, 0.2);
+        }
+        .err {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin: -0.5rem 0 1rem;
+        }
+        .field-err { color: var(--danger); font-size: 0.8rem; margin: -0.75rem 0 0.75rem; }
+        button[type="submit"] {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.25rem;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover { background: var(--accent-hover); }
+        .back {
+            margin-top: 1.25rem;
+            text-align: center;
+        }
+        .back a { color: var(--muted); font-size: 0.9rem; }
+        .back a:hover { color: var(--accent); }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Create your account</h1>
+    <p class="subtitle">Choose a username, a 10-digit phone number, and a password.</p>
+
+    <p class="err" th:if="${error}" th:text="${error}">Error</p>
+
+    <form th:action="@{/web/signup}" th:object="${signupRequest}" method="post" novalidate>
+        <label for="username">Username</label>
+        <input id="username" type="text" th:field="*{username}" autocomplete="username" maxlength="50" placeholder="3–50 characters"/>
+        <p class="field-err" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></p>
+
+        <label for="phoneNumber">Phone number</label>
+        <input id="phoneNumber" type="tel" th:field="*{phoneNumber}" autocomplete="tel" maxlength="10" placeholder="10 digits"/>
+        <p class="field-err" th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}"></p>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" th:field="*{password}" autocomplete="new-password"/>
+        <p class="field-err" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+
+        <button type="submit">Sign up</button>
+    </form>
+
+    <p class="back"><a th:href="@{/}">← Back to sign in</a></p>
+</div>
+</body>
+</html>

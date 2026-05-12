@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(CostCenterApiPaths.cBASE + "/costs")
@@ -27,6 +29,11 @@ public class CostController {
     @GetMapping
     public ResponseEntity<CostResponse> getById(@RequestParam int costId) {
         return ResponseEntity.ok(costService.getById(costId));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<CostResponse>> getAll() {
+        return ResponseEntity.ok(costService.getAll());
     }
 
     @PatchMapping

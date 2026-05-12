@@ -14,6 +14,7 @@ public class Cost {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "cost_id")
     private int costId;
 
     @Column(name = "cost_name", nullable = false, unique = true)

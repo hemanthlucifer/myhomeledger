@@ -16,6 +16,7 @@ public class BillResponse {
 
     private UUID id;
     private int costId;
+    private String costName;
     private UUID projectId;
     private BigDecimal amount;
     private LocalDate billDate;

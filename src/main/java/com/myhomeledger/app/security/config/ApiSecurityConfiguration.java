@@ -23,6 +23,8 @@ public class ApiSecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/signup").permitAll()
+                        .requestMatchers("/", "/signup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/web/login", "/web/signup", "/web/logout").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

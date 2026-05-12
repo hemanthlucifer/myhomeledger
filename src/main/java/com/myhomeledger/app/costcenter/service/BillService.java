@@ -1,6 +1,7 @@
 package com.myhomeledger.app.costcenter.service;
 
 import com.myhomeledger.app.costcenter.dto.BillCreateRequest;
+import com.myhomeledger.app.costcenter.dto.BillFilterCriteria;
 import com.myhomeledger.app.costcenter.dto.BillResponse;
 import com.myhomeledger.app.costcenter.dto.BillUpdateRequest;
 
@@ -18,4 +19,6 @@ public interface BillService {
     void delete(UUID id);
 
     List<BillResponse> listByProjectId(UUID projectId);
+
+    List<BillResponse> listFiltered(UUID userId, BillFilterCriteria criteria);
 }

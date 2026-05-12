@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title th:text="${project.projectName} + ' — Bills'">Project</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --card: #1a2332;
+            --border: #2d3a4d;
+            --text: #e8eef5;
+            --muted: #8b9cb3;
+            --accent: #3d8bfd;
+            --accent-hover: #5aa0ff;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(26, 35, 50, 0.85);
+            backdrop-filter: blur(8px);
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .greeting { font-size: 1.05rem; font-weight: 600; }
+        .greeting span { color: var(--accent); }
+        .back { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+        .back:hover { color: var(--accent); }
+        .topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text);
+            border-color: var(--border);
+        }
+        .btn-ghost:hover { background: #222d3d; border-color: var(--muted); }
+        main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+        h1 { margin: 0 0 1.25rem; font-size: 1.5rem; letter-spacing: -0.02em; }
+        .filters {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1.35rem;
+            margin-bottom: 1.5rem;
+        }
+        .filters h2 { margin: 0 0 1rem; font-size: 0.95rem; color: var(--muted); font-weight: 600; }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.85rem 1rem;
+            align-items: end;
+        }
+        .field label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 0.3rem;
+        }
+        .field input {
+            width: 100%;
+            padding: 0.55rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #131c28;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+        .field input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .filter-actions { display: flex; gap: 0.5rem; align-items: flex-end; }
+        .table-wrap {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: auto;
+            background: var(--card);
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 0.65rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        tr:last-child td { border-bottom: none; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .empty {
+            text-align: center;
+            padding: 2rem;
+            color: var(--muted);
+        }
+        .page-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.25rem;
+        }
+        .page-head h1 { margin: 0; }
+        dialog {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0;
+            background: var(--card);
+            color: var(--text);
+            max-width: 100%;
+            width: min(440px, calc(100vw - 2rem));
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+        }
+        dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+        .dialog-inner { padding: 1.35rem 1.5rem 1.5rem; }
+        .dialog-inner h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+        .dialog-inner .field { margin-bottom: 0.85rem; }
+        .dialog-inner .field:last-of-type { margin-bottom: 0; }
+        .dialog-inner label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-bottom: 0.35rem;
+        }
+        .dialog-inner input[type="text"],
+        .dialog-inner input[type="number"],
+        .dialog-inner input[type="date"],
+        .dialog-inner select,
+        .dialog-inner textarea {
+            width: 100%;
+            padding: 0.55rem 0.65rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #131c28;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+        .dialog-inner textarea { min-height: 5rem; resize: vertical; }
+        .dialog-inner input:focus,
+        .dialog-inner select:focus,
+        .dialog-inner textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(61, 139, 253, 0.2);
+        }
+        .field-err { color: #f87171; font-size: 0.8rem; margin: 0.25rem 0 0; }
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1.15rem;
+        }
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <div class="topbar-left">
+        <p class="greeting">Hi <span th:text="${username}">User</span></p>
+        <a class="back" th:href="@{/home}">← All projects</a>
+    </div>
+    <div class="topbar-actions">
+        <form th:action="@{/web/logout}" method="post" style="margin:0;">
+            <button type="submit" class="btn btn-ghost">Log out</button>
+        </form>
+    </div>
+</header>
+
+<main>
+    <div class="page-head">
+        <h1 th:text="${project.projectName}">Project name</h1>
+        <button type="button" class="btn btn-primary" id="openCreateBill">Create bill</button>
+    </div>
+
+    <section class="filters">
+        <h2>Filter bills</h2>
+        <form class="filter-grid" th:action="@{/web/projects/{id}(id=${project.projectId})}" method="get">
+            <div class="field">
+                <label for="costName">Cost name</label>
+                <input id="costName" type="text" name="costName" th:value="${filterCostName}" placeholder="Contains…" maxlength="255"/>
+            </div>
+            <div class="field">
+                <label for="minAmount">Min amount</label>
+                <input id="minAmount" type="number" step="0.01" name="minAmount" th:value="${filterMinAmount}"/>
+            </div>
+            <div class="field">
+                <label for="maxAmount">Max amount</label>
+                <input id="maxAmount" type="number" step="0.01" name="maxAmount" th:value="${filterMaxAmount}"/>
+            </div>
+            <div class="field">
+                <label for="billDateFrom">From date</label>
+                <input id="billDateFrom" type="date" name="billDateFrom" th:value="${filterBillDateFrom}"/>
+            </div>
+            <div class="field">
+                <label for="billDateTo">To date</label>
+                <input id="billDateTo" type="date" name="billDateTo" th:value="${filterBillDateTo}"/>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a class="btn btn-ghost" th:href="@{/web/projects/{id}(id=${project.projectId})}">Clear</a>
+            </div>
+        </form>
+    </section>
+
+    <div class="table-wrap" th:if="${bills != null and !bills.isEmpty()}">
+        <table>
+            <thead>
+            <tr>
+                <th>Date</th>
+                <th>Cost</th>
+                <th class="num">Amount</th>
+                <th>Items</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="b : ${bills}">
+                <td th:text="${b.billDate}">—</td>
+                <td th:text="${b.costName}">—</td>
+                <td class="num" th:text="${b.amount}">0</td>
+                <td th:text="${b.items}">—</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="empty" th:if="${bills == null or bills.isEmpty()}">No bills match these filters.</p>
+</main>
+
+<dialog id="createBillDialog" th:open="${billCreateDialogOpen == true}">
+    <div class="dialog-inner">
+        <h2>New bill</h2>
+        <form th:action="@{/web/projects/{projectId}/bills(projectId=${project.projectId})}" th:object="${billCreateForm}" method="post" novalidate>
+            <div class="field">
+                <label for="billCostId">Cost type</label>
+                <select id="billCostId" th:field="*{costId}" required>
+                    <option value="">Select cost type</option>
+                    <option th:each="c : ${costs}" th:value="${c.costId}" th:text="${c.costName}">Cost</option>
+                </select>
+                <p class="field-err" th:if="${#fields.hasErrors('costId')}" th:errors="*{costId}"></p>
+            </div>
+            <div class="field">
+                <label for="billAmount">Amount</label>
+                <input id="billAmount" type="number" step="0.01" min="0.01" th:field="*{amount}" placeholder="0.00"/>
+                <p class="field-err" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></p>
+            </div>
+            <div class="field">
+                <label for="billDate">Bill date</label>
+                <input id="billDate" type="date" th:field="*{billDate}"/>
+                <p class="field-err" th:if="${#fields.hasErrors('billDate')}" th:errors="*{billDate}"></p>
+            </div>
+            <div class="field">
+                <label for="billItems">Items</label>
+                <textarea id="billItems" th:field="*{items}" maxlength="4000" placeholder="What was purchased"></textarea>
+                <p class="field-err" th:if="${#fields.hasErrors('items')}" th:errors="*{items}"></p>
+            </div>
+            <div class="dialog-actions">
+                <button type="submit" class="btn btn-primary">Save bill</button>
+                <button type="button" class="btn btn-ghost" id="closeCreateBill">Cancel</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<script>
+    (function () {
+        var dlg = document.getElementById('createBillDialog');
+        var openBtn = document.getElementById('openCreateBill');
+        var closeBtn = document.getElementById('closeCreateBill');
+        if (openBtn && dlg && typeof dlg.showModal === 'function') {
+            openBtn.addEventListener('click', function () { dlg.showModal(); });
+        }
+        if (closeBtn && dlg) {
+            closeBtn.addEventListener('click', function () { dlg.close(); });
+        }
+    })();
+</script>
+</body>
+</html>
