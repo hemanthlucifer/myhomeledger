@@ -22,7 +22,9 @@ public final class BillSpecification {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("projectId"), criteria.projectId()));
 
-            if (criteria.costName() != null) {
+            if (criteria.costId() != null) {
+                predicates.add(cb.equal(root.get("costId"), criteria.costId()));
+            } else if (criteria.costName() != null) {
                 String pattern = likePattern(criteria.costName().toLowerCase(Locale.ROOT));
                 predicates.add(cb.like(cb.lower(cost.get("costName")), pattern, '\\'));
             }

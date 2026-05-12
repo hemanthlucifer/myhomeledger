@@ -2,6 +2,7 @@ package com.myhomeledger.app.web;
 
 import com.myhomeledger.app.costcenter.dto.BillCreateRequest;
 import com.myhomeledger.app.costcenter.dto.BillFilterCriteria;
+import com.myhomeledger.app.costcenter.dto.BillResponse;
 import com.myhomeledger.app.costcenter.dto.ProjectResponse;
 import com.myhomeledger.app.costcenter.service.BillService;
 import com.myhomeledger.app.costcenter.service.CostService;
@@ -22,7 +23,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Controller
@@ -38,7 +42,7 @@ public class WebProjectController {
     @GetMapping("/web/projects/{projectId}")
     public String projectPage(
             @PathVariable UUID projectId,
-            @RequestParam(required = false) String costName,
+            @RequestParam(required = false) Integer costId,
             @RequestParam(required = false) Double minAmount,
             @RequestParam(required = false) Double maxAmount,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate billDateFrom,
@@ -52,7 +56,7 @@ public class WebProjectController {
             log.warn("Project page blocked: user {} does not own project {}", userId, projectId);
             return "redirect:/home";
         }
-        BillFilterCriteria criteria = new BillFilterCriteria(projectId, costName, minAmount, maxAmount, billDateFrom, billDateTo);
+        BillFilterCriteria criteria = new BillFilterCriteria(projectId, costId, null, minAmount, maxAmount, billDateFrom, billDateTo);
         populateProjectModel(userId, project, criteria, model, defaultBillCreateForm());
         return "project";
     }
@@ -72,7 +76,7 @@ public class WebProjectController {
             return "redirect:/home";
         }
         if (bindingResult.hasErrors()) {
-            BillFilterCriteria criteria = new BillFilterCriteria(projectId, null, null, null, null, null);
+            BillFilterCriteria criteria = new BillFilterCriteria(projectId, null, null, null, null, null, null);
             populateProjectModel(userId, project, criteria, model, billCreateForm);
             model.addAttribute("billCreateDialogOpen", true);
             return "project";
@@ -158,8 +162,14 @@ public class WebProjectController {
                 .orElse("there");
         model.addAttribute("username", username);
         model.addAttribute("project", project);
-        model.addAttribute("bills", billService.listFiltered(userId, criteria));
-        model.addAttribute("filterCostName", criteria.costName() != null ? criteria.costName() : "");
+        List<BillResponse> bills = billService.listFiltered(userId, criteria);
+        BigDecimal billsTotal = bills.stream()
+                .map(BillResponse::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        model.addAttribute("bills", bills);
+        model.addAttribute("billsTotal", billsTotal);
+        model.addAttribute("filterCostId", criteria.costId());
         model.addAttribute("filterMinAmount", criteria.minAmount());
         model.addAttribute("filterMaxAmount", criteria.maxAmount());
         model.addAttribute("filterBillDateFrom", criteria.billDateFrom() != null ? criteria.billDateFrom().toString() : "");

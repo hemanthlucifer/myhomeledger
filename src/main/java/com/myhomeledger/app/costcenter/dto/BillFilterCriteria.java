@@ -8,6 +8,7 @@ import java.util.UUID;
  */
 public record BillFilterCriteria(
         UUID projectId,
+        Integer costId,
         String costName,
         Double minAmount,
         Double maxAmount,
@@ -17,6 +18,9 @@ public record BillFilterCriteria(
     public BillFilterCriteria {
         if (projectId == null) {
             throw new IllegalArgumentException("projectId is required");
+        }
+        if (costId != null && costId <= 0) {
+            costId = null;
         }
         if (costName != null && costName.isBlank()) {
             costName = null;

@@ -66,6 +66,7 @@ public class BillController {
     @GetMapping("/filter")
     public ResponseEntity<List<BillResponse>> filter(
             @RequestParam UUID projectId,
+            @RequestParam(required = false) Integer costId,
             @RequestParam(required = false) String costName,
             @RequestParam(required = false) Double minAmount,
             @RequestParam(required = false) Double maxAmount,
@@ -74,7 +75,7 @@ public class BillController {
             Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
         log.info("Filter bills request received for user {} project {}", userId, projectId);
-        BillFilterCriteria criteria = new BillFilterCriteria(projectId, costName, minAmount, maxAmount, billDateFrom, billDateTo);
+        BillFilterCriteria criteria = new BillFilterCriteria(projectId, costId, costName, minAmount, maxAmount, billDateFrom, billDateTo);
         return ResponseEntity.ok(billService.listFiltered(userId, criteria));
     }
 }
