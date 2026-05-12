@@ -59,6 +59,12 @@
             border-color: var(--border);
         }
         .btn-ghost:hover { background: #222d3d; border-color: var(--muted); }
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border-color: rgba(248, 113, 113, 0.35);
+        }
+        .btn-danger:hover { background: rgba(248, 113, 113, 0.10); border-color: rgba(248, 113, 113, 0.6); }
         main {
             max-width: 720px;
             margin: 0 auto;
@@ -98,6 +104,23 @@
             display: block;
         }
         a.project-link:hover { color: var(--accent); }
+        .project-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .project-actions { display: flex; align-items: center; gap: 0.5rem; }
+        .flash {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            margin: 0 0 1rem;
+            background: rgba(26, 35, 50, 0.6);
+            color: var(--text);
+        }
+        .flash.error { border-color: rgba(248, 113, 113, 0.35); }
+        .flash.success { border-color: rgba(61, 139, 253, 0.35); }
         .empty {
             text-align: center;
             padding: 2rem 1.25rem;
@@ -160,6 +183,9 @@
 </header>
 
 <main>
+    <div class="flash error" th:if="${error != null and !#strings.isEmpty(error)}" th:text="${error}">Error</div>
+    <div class="flash success" th:if="${message != null and !#strings.isEmpty(message)}" th:text="${message}">Message</div>
+
     <div class="section-head">
         <h1>Your projects</h1>
         <button type="button" class="btn btn-primary" id="openCreateProject">Create project</button>
@@ -167,7 +193,15 @@
 
     <ul class="project-list" th:if="${projects != null and !projects.isEmpty()}">
         <li th:each="p : ${projects}">
-            <a class="project-link name" th:href="@{/web/projects/{id}(id=${p.projectId})}" th:text="${p.projectName}">Project</a>
+            <div class="project-row">
+                <a class="project-link name" th:href="@{/web/projects/{id}(id=${p.projectId})}" th:text="${p.projectName}">Project</a>
+                <div class="project-actions">
+                    <form th:action="@{/web/projects/{id}/delete(id=${p.projectId})}" method="post" style="margin:0;"
+                          onsubmit="return confirm('Delete this project? This cannot be undone.');">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
         </li>
     </ul>
     <p class="empty" th:if="${projects == null or projects.isEmpty()}">No projects yet. Create one to get started.</p>

@@ -81,6 +81,41 @@ public class WebProjectController {
         return "redirect:/web/projects/" + projectId;
     }
 
+    @PostMapping("/web/projects/{projectId}/bills/{billId}/delete")
+    public String deleteBill(
+            @PathVariable UUID projectId,
+            @PathVariable UUID billId,
+            Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        ProjectResponse project = requireOwnedProject(projectId, userId);
+        if (project == null) {
+            return "redirect:/home";
+        }
+        var bill = billService.getById(billId);
+        if (!projectId.equals(bill.getProjectId())) {
+            return "redirect:/web/projects/" + projectId;
+        }
+        billService.delete(billId);
+        return "redirect:/web/projects/" + projectId;
+    }
+
+    @PostMapping("/web/projects/{projectId}/delete-from-project")
+    public String deleteProjectFromProjectPage(
+            @PathVariable UUID projectId,
+            Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        ProjectResponse project = requireOwnedProject(projectId, userId);
+        if (project == null) {
+            return "redirect:/home";
+        }
+        try {
+            projectService.delete(projectId);
+            return "redirect:/home?message=Project%20deleted";
+        } catch (RuntimeException e) {
+            return "redirect:/web/projects/" + projectId + "?error=" + urlEncode(e.getMessage());
+        }
+    }
+
     private ProjectResponse requireOwnedProject(UUID projectId, UUID userId) {
         ProjectResponse project = projectService.getById(projectId);
         if (!project.getUserId().equals(userId)) {
@@ -114,5 +149,16 @@ public class WebProjectController {
         model.addAttribute("filterBillDateTo", criteria.billDateTo() != null ? criteria.billDateTo().toString() : "");
         model.addAttribute("costs", costService.getAll());
         model.addAttribute("billCreateForm", billCreateForm);
+    }
+
+    private static String urlEncode(String value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (RuntimeException e) {
+            return "";
+        }
     }
 }

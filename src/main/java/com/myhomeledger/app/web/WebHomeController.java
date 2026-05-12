@@ -13,6 +13,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.UUID;
 
@@ -24,9 +26,15 @@ public class WebHomeController {
     private final ProjectService projectService;
 
     @GetMapping("/home")
-    public String home(Authentication authentication, Model model) {
+    public String home(
+            Authentication authentication,
+            @RequestParam(required = false) String error,
+            @RequestParam(required = false) String message,
+            Model model) {
         populateDashboard(authentication, model);
         model.addAttribute("projectForm", new WebProjectNameForm());
+        model.addAttribute("error", error);
+        model.addAttribute("message", message);
         return "home";
     }
 
@@ -49,6 +57,23 @@ public class WebHomeController {
         return "redirect:/home";
     }
 
+    @PostMapping("/web/projects/{projectId}/delete")
+    public String deleteProject(
+            @PathVariable UUID projectId,
+            Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        var project = projectService.getById(projectId);
+        if (!project.getUserId().equals(userId)) {
+            return "redirect:/home";
+        }
+        try {
+            projectService.delete(projectId);
+            return "redirect:/home?message=Project%20deleted";
+        } catch (RuntimeException e) {
+            return "redirect:/home?error=" + urlEncode(e.getMessage());
+        }
+    }
+
     private void populateDashboard(Authentication authentication, Model model) {
         UUID userId = (UUID) authentication.getPrincipal();
         String username = userRepository.findById(userId)
@@ -56,5 +81,16 @@ public class WebHomeController {
                 .orElse("there");
         model.addAttribute("username", username);
         model.addAttribute("projects", projectService.listByUserId(userId));
+    }
+
+    private static String urlEncode(String value) {
+        if (value == null) {
+            return "";
+        }
+        try {
+            return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (RuntimeException e) {
+            return "";
+        }
     }
 }

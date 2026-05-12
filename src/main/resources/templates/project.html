@@ -13,6 +13,7 @@
             --muted: #8b9cb3;
             --accent: #3d8bfd;
             --accent-hover: #5aa0ff;
+            --danger: #f87171;
         }
         * { box-sizing: border-box; }
         body {
@@ -59,6 +60,12 @@
             border-color: var(--border);
         }
         .btn-ghost:hover { background: #222d3d; border-color: var(--muted); }
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border-color: rgba(248, 113, 113, 0.35);
+        }
+        .btn-danger:hover { background: rgba(248, 113, 113, 0.10); border-color: rgba(248, 113, 113, 0.6); }
         main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
         h1 { margin: 0 0 1.25rem; font-size: 1.5rem; letter-spacing: -0.02em; }
         .filters {
@@ -170,6 +177,17 @@
             gap: 0.5rem;
             margin-top: 1.15rem;
         }
+        .flash {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            margin: 0 0 1.25rem;
+            background: rgba(26, 35, 50, 0.6);
+            color: var(--text);
+        }
+        .flash.error { border-color: rgba(248, 113, 113, 0.35); }
+        .row-actions { display: flex; justify-content: flex-end; }
+        .th-actions { width: 1%; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -186,9 +204,17 @@
 </header>
 
 <main>
+    <div class="flash error" th:if="${param.error != null and !#lists.isEmpty(param.error)}" th:text="${param.error[0]}">Error</div>
+
     <div class="page-head">
         <h1 th:text="${project.projectName}">Project name</h1>
-        <button type="button" class="btn btn-primary" id="openCreateBill">Create bill</button>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <form th:action="@{/web/projects/{id}/delete-from-project(id=${project.projectId})}" method="post" style="margin:0;"
+                  onsubmit="return confirm('Delete this project? This cannot be undone.');">
+                <button type="submit" class="btn btn-danger">Delete project</button>
+            </form>
+            <button type="button" class="btn btn-primary" id="openCreateBill">Create bill</button>
+        </div>
     </div>
 
     <section class="filters">
@@ -229,6 +255,7 @@
                 <th>Cost</th>
                 <th class="num">Amount</th>
                 <th>Items</th>
+                <th class="th-actions"></th>
             </tr>
             </thead>
             <tbody>
@@ -237,6 +264,13 @@
                 <td th:text="${b.costName}">—</td>
                 <td class="num" th:text="${b.amount}">0</td>
                 <td th:text="${b.items}">—</td>
+                <td class="row-actions">
+                    <form th:action="@{/web/projects/{projectId}/bills/{billId}/delete(projectId=${project.projectId}, billId=${b.id})}"
+                          method="post" style="margin:0;"
+                          onsubmit="return confirm('Delete this bill? This cannot be undone.');">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </td>
             </tr>
             </tbody>
         </table>
