@@ -14,6 +14,7 @@ import com.myhomeledger.app.security.support.TokenHasher;
 import com.myhomeledger.app.user.entity.UserEntity;
 import com.myhomeledger.app.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.util.Base64;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
@@ -38,7 +40,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public TokenResponse signup(SignupRequest request) {
+        log.info("Signup attempt received");
         if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+            log.warn("Signup blocked: duplicate phone number");
             throw new DuplicatePhoneException();
         }
 
@@ -49,6 +53,7 @@ public class AuthServiceImpl implements AuthService {
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
         userRepository.save(user);
+        log.info("User {} created", user.getUserId());
 
         UserAuthentication authentication = new UserAuthentication();
         authentication.setUser(user);
@@ -62,17 +67,21 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public TokenResponse login(LoginRequest request) {
+        log.info("Login attempt received");
         UserEntity user = userRepository.findByPhoneNumber(request.getPhoneNumber())
                 .orElseThrow(InvalidCredentialsException::new);
         UserAuthentication auth = userAuthenticationRepository.findById(user.getUserId())
                 .orElseThrow(InvalidCredentialsException::new);
         if (auth.isAccountLocked()) {
+            log.warn("Login rejected: account locked for user {}", user.getUserId());
             throw new InvalidCredentialsException();
         }
         if (!passwordEncoder.matches(request.getPassword(), auth.getPasswordHash())) {
+            log.warn("Login rejected: invalid credentials");
             throw new InvalidCredentialsException();
         }
 
+        log.info("Login successful for user {}", user.getUserId());
         return issueTokensForUser(user);
     }
 
@@ -84,6 +93,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(InvalidRefreshTokenException::new);
         if (session.getExpiresAt().isBefore(Instant.now())) {
             userSessionRepository.delete(session);
+            log.warn("Refresh rejected: expired session {}", session.getSessionId());
             throw new InvalidRefreshTokenException();
         }
 
@@ -94,6 +104,7 @@ public class AuthServiceImpl implements AuthService {
         userSessionRepository.save(session);
 
         UserEntity user = session.getUser();
+        log.info("Refresh successful for user {} session {}", user.getUserId(), session.getSessionId());
         String access = jwtService.createAccessToken(user.getUserId(), session.getSessionId());
         return new TokenResponse(
                 access,
@@ -106,8 +117,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(LogoutRequest request) {
         String hash = TokenHasher.sha256Hex(request.getRefreshToken());
-        userSessionRepository.findByRefreshTokenHash(hash)
-                .ifPresent(userSessionRepository::delete);
+        userSessionRepository.findByRefreshTokenHash(hash).ifPresent(session -> {
+            userSessionRepository.delete(session);
+            log.info("Logout successful for user {} session {}", session.getUser().getUserId(), session.getSessionId());
+        });
     }
 
     private TokenResponse issueTokensForUser(UserEntity user) {
@@ -122,6 +135,7 @@ public class AuthServiceImpl implements AuthService {
         session.setExpiresAt(now.plusSeconds(jwtProperties.refreshTokenDays() * 86400));
         userSessionRepository.save(session);
 
+        log.info("Issued new session {} for user {}", session.getSessionId(), user.getUserId());
         String access = jwtService.createAccessToken(user.getUserId(), session.getSessionId());
         return new TokenResponse(
                 access,

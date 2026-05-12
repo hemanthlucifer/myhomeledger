@@ -14,6 +14,7 @@ import com.myhomeledger.app.costcenter.repository.ProjectRepository;
 import com.myhomeledger.app.costcenter.service.BillService;
 import com.myhomeledger.app.costcenter.specification.BillSpecification;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BillServiceImpl implements BillService {
 
@@ -36,16 +38,19 @@ public class BillServiceImpl implements BillService {
     @Transactional
     @Override
     public BillResponse create(BillCreateRequest request) {
+        log.info("Creating bill for project {} costId {}", request.getProjectId(), request.getCostId());
         requireProject(request.getProjectId());
         requireCost(request.getCostId());
         Bill bill = costCenterMapper.toEntity(request);
         Bill saved = billRepository.save(bill);
+        log.info("Created bill {} for project {}", saved.getId(), saved.getProjectId());
         return costCenterMapper.toBillResponse(saved);
     }
 
     @Transactional(readOnly = true)
     @Override
     public BillResponse getById(UUID id) {
+        log.info("Fetching bill {}", id);
         Bill bill = billRepository.findById(id)
                 .orElseThrow(() -> new CostCenterNotFoundException("Bill not found: " + id));
         return costCenterMapper.toBillResponse(bill);
@@ -54,27 +59,32 @@ public class BillServiceImpl implements BillService {
     @Transactional
     @Override
     public BillResponse update(UUID id, BillUpdateRequest request) {
+        log.info("Updating bill {}", id);
         Bill bill = billRepository.findById(id)
                 .orElseThrow(() -> new CostCenterNotFoundException("Bill not found: " + id));
         requireProject(request.getProjectId());
         requireCost(request.getCostId());
         costCenterMapper.updateBill(bill, request);
         Bill saved = billRepository.save(bill);
+        log.info("Updated bill {} for project {}", saved.getId(), saved.getProjectId());
         return costCenterMapper.toBillResponse(saved);
     }
 
     @Transactional
     @Override
     public void delete(UUID id) {
+        log.info("Deleting bill {}", id);
         if (!billRepository.existsById(id)) {
             throw new CostCenterNotFoundException("Bill not found: " + id);
         }
         billRepository.deleteById(id);
+        log.info("Deleted bill {}", id);
     }
 
     @Transactional(readOnly = true)
     @Override
     public List<BillResponse> listByProjectId(UUID projectId) {
+        log.info("Listing bills for project {}", projectId);
         return billRepository.findAllByProjectIdOrderByBillDateDesc(projectId).stream()
                 .map(costCenterMapper::toBillResponse)
                 .toList();
@@ -83,9 +93,11 @@ public class BillServiceImpl implements BillService {
     @Transactional(readOnly = true)
     @Override
     public List<BillResponse> listFiltered(UUID userId, BillFilterCriteria criteria) {
+        log.info("Filtering bills for user {} project {}", userId, criteria.projectId());
         Project project = projectRepository.findById(criteria.projectId())
                 .orElseThrow(() -> new CostCenterNotFoundException("Project not found: " + criteria.projectId()));
         if (!project.getUserId().equals(userId)) {
+            // Deliberately mimic "not found" to avoid leaking project existence across users.
             throw new CostCenterNotFoundException("Project not found: " + criteria.projectId());
         }
         validateFilterRanges(criteria);

@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
+@Slf4j
 @RequiredArgsConstructor
 public class WebAuthController {
 
@@ -29,6 +31,7 @@ public class WebAuthController {
 
     @GetMapping("/")
     public String landing(Model model) {
+        log.info("Landing page requested");
         model.addAttribute("loginRequest", new LoginRequest());
         return "index";
     }
@@ -44,10 +47,12 @@ public class WebAuthController {
             return "index";
         }
         try {
+            log.info("Web login submitted");
             TokenResponse tokens = authService.login(loginRequest);
             WebAuthCookies.writeAuthCookies(response, tokens, jwtProperties, request.isSecure());
             return "redirect:/home";
         } catch (InvalidCredentialsException e) {
+            log.warn("Web login failed: invalid credentials");
             model.addAttribute("error", e.getMessage());
             return "index";
         }
@@ -55,6 +60,7 @@ public class WebAuthController {
 
     @GetMapping("/signup")
     public String signupForm(Model model) {
+        log.info("Signup page requested");
         model.addAttribute("signupRequest", new SignupRequest());
         return "signup";
     }
@@ -70,10 +76,12 @@ public class WebAuthController {
             return "signup";
         }
         try {
+            log.info("Web signup submitted");
             TokenResponse tokens = authService.signup(signupRequest);
             WebAuthCookies.writeAuthCookies(response, tokens, jwtProperties, request.isSecure());
             return "redirect:/home";
         } catch (DuplicatePhoneException e) {
+            log.warn("Web signup blocked: duplicate phone number");
             model.addAttribute("error", e.getMessage());
             return "signup";
         }
@@ -81,6 +89,7 @@ public class WebAuthController {
 
     @PostMapping("/web/logout")
     public String logout(HttpServletRequest request, HttpServletResponse response) {
+        log.info("Web logout submitted");
         String refresh = readCookie(request, AuthCookieNames.REFRESH_TOKEN);
         if (refresh != null && !refresh.isBlank()) {
             try {

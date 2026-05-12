@@ -10,6 +10,7 @@ import com.myhomeledger.app.user.entity.UserEntity;
 import com.myhomeledger.app.user.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -25,6 +26,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Controller
+@Slf4j
 @RequiredArgsConstructor
 public class WebProjectController {
 
@@ -44,8 +46,10 @@ public class WebProjectController {
             Authentication authentication,
             Model model) {
         UUID userId = (UUID) authentication.getPrincipal();
+        log.info("Project page requested for user {} project {}", userId, projectId);
         ProjectResponse project = requireOwnedProject(projectId, userId);
         if (project == null) {
+            log.warn("Project page blocked: user {} does not own project {}", userId, projectId);
             return "redirect:/home";
         }
         BillFilterCriteria criteria = new BillFilterCriteria(projectId, costName, minAmount, maxAmount, billDateFrom, billDateTo);
@@ -61,8 +65,10 @@ public class WebProjectController {
             Authentication authentication,
             Model model) {
         UUID userId = (UUID) authentication.getPrincipal();
+        log.info("Create bill submitted for user {} project {}", userId, projectId);
         ProjectResponse project = requireOwnedProject(projectId, userId);
         if (project == null) {
+            log.warn("Create bill blocked: user {} does not own project {}", userId, projectId);
             return "redirect:/home";
         }
         if (bindingResult.hasErrors()) {
@@ -78,6 +84,7 @@ public class WebProjectController {
         request.setBillDate(billCreateForm.getBillDate());
         request.setItems(billCreateForm.getItems().trim());
         billService.create(request);
+        log.info("Bill created for user {} project {}", userId, projectId);
         return "redirect:/web/projects/" + projectId;
     }
 
@@ -87,15 +94,20 @@ public class WebProjectController {
             @PathVariable UUID billId,
             Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
+        // HTML forms cannot send DELETE without JS; we intentionally use POST for this web action.
+        log.info("Delete bill submitted for user {} project {} bill {}", userId, projectId, billId);
         ProjectResponse project = requireOwnedProject(projectId, userId);
         if (project == null) {
+            log.warn("Delete bill blocked: user {} does not own project {}", userId, projectId);
             return "redirect:/home";
         }
         var bill = billService.getById(billId);
         if (!projectId.equals(bill.getProjectId())) {
+            log.warn("Delete bill blocked: bill {} not in project {}", billId, projectId);
             return "redirect:/web/projects/" + projectId;
         }
         billService.delete(billId);
+        log.info("Bill {} deleted by user {} from project {}", billId, userId, projectId);
         return "redirect:/web/projects/" + projectId;
     }
 
@@ -104,14 +116,19 @@ public class WebProjectController {
             @PathVariable UUID projectId,
             Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
+        // HTML forms cannot send DELETE without JS; we intentionally use POST for this web action.
+        log.info("Delete project submitted from project page for user {} project {}", userId, projectId);
         ProjectResponse project = requireOwnedProject(projectId, userId);
         if (project == null) {
+            log.warn("Delete project blocked: user {} does not own project {}", userId, projectId);
             return "redirect:/home";
         }
         try {
             projectService.delete(projectId);
+            log.info("Project {} deleted by user {}", projectId, userId);
             return "redirect:/home?message=Project%20deleted";
         } catch (RuntimeException e) {
+            log.error("Project delete failed for user {} project {}", userId, projectId, e);
             return "redirect:/web/projects/" + projectId + "?error=" + urlEncode(e.getMessage());
         }
     }

@@ -25,11 +25,13 @@ public class CreateUserServiceServiceImpl implements CreateUserService {
     @Override
     public void createUser(CreateUserDTO createUserDTO) {
         try{
+            log.info("Creating user");
             UserEntity userEntity = userMapper.toEntity(createUserDTO);
             userRepository.save(userEntity);
+            log.info("Created user {}", userEntity.getUserId());
         } catch (Exception e) {
-            log.error(e.getLocalizedMessage(),e);
-            throw new UserProcessException("Unable to create user with username: " + createUserDTO.getUsername() + " and phone number: " + createUserDTO.getPhoneNumber());
+            log.error("Failed to create user", e);
+            throw new UserProcessException("Unable to create user");
         }
     }
 

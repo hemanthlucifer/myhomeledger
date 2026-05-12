@@ -6,6 +6,7 @@ import com.myhomeledger.app.user.entity.UserEntity;
 import com.myhomeledger.app.user.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.UUID;
 
 @Controller
+@Slf4j
 @RequiredArgsConstructor
 public class WebHomeController {
 
@@ -31,6 +33,8 @@ public class WebHomeController {
             @RequestParam(required = false) String error,
             @RequestParam(required = false) String message,
             Model model) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        log.info("Home page requested for user {}", userId);
         populateDashboard(authentication, model);
         model.addAttribute("projectForm", new WebProjectNameForm());
         model.addAttribute("error", error);
@@ -50,6 +54,7 @@ public class WebHomeController {
             return "home";
         }
         UUID userId = (UUID) authentication.getPrincipal();
+        log.info("Create project submitted for user {}", userId);
         ProjectCreateRequest request = new ProjectCreateRequest();
         request.setProjectName(projectForm.getProjectName().trim());
         request.setUserId(userId);
@@ -62,14 +67,19 @@ public class WebHomeController {
             @PathVariable UUID projectId,
             Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
+        // HTML forms cannot send DELETE without JS; we intentionally use POST for this web action.
+        log.info("Delete project submitted from home for user {} project {}", userId, projectId);
         var project = projectService.getById(projectId);
         if (!project.getUserId().equals(userId)) {
+            log.warn("Delete project blocked: user {} does not own project {}", userId, projectId);
             return "redirect:/home";
         }
         try {
             projectService.delete(projectId);
+            log.info("Project {} deleted by user {}", projectId, userId);
             return "redirect:/home?message=Project%20deleted";
         } catch (RuntimeException e) {
+            log.error("Project delete failed for user {} project {}", userId, projectId, e);
             return "redirect:/home?error=" + urlEncode(e.getMessage());
         }
     }
