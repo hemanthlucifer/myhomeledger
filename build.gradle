@@ -8,8 +8,11 @@ group = 'com.myhomeledger'
 version = '0.0.1-SNAPSHOT'
 
 // Work around Windows file-locks (e.g. IDE holding build/ open).
-// Put outputs outside the project tree so the IDE is less likely to lock/index them.
-buildDir = file("${System.getProperty('user.home')}/.myhomeledger-build")
+// IMPORTANT: keep the default buildDir for Linux (Render) so the runnable jar lands in build/libs.
+def osName = (System.getProperty('os.name') ?: '').toLowerCase()
+if (osName.contains('windows')) {
+	buildDir = file("${System.getProperty('user.home')}/.myhomeledger-build")
+}
 
 java {
 	toolchain {
