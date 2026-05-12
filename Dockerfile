@@ -5,6 +5,7 @@ WORKDIR /workspace
 COPY gradle gradle
 COPY gradlew gradlew
 COPY build.gradle settings.gradle ./
+RUN chmod +x gradlew
 RUN ./gradlew --no-daemon dependencies
 
 # Build application
